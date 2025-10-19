@@ -1,4 +1,18 @@
 # Social Trends Lab
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Last Commit](https://img.shields.io/github/last-commit/KonNik88/social-trends-lab)
+![Stars](https://img.shields.io/github/stars/KonNik88/social-trends-lab?style=social)
+![Forks](https://img.shields.io/github/forks/KonNik88/social-trends-lab?style=social)
+
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-red)
+![Dash](https://img.shields.io/badge/Dash-UI-orange)
+![BERTopic](https://img.shields.io/badge/Topic%20Modeling-BERTopic-lightgrey)
+![SentenceTransformers](https://img.shields.io/badge/Embeddings-SBERT-yellowgreen)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
+
+![MLflow](https://img.shields.io/badge/Tracking-MLflow-blueviolet)
+![Prefect](https://img.shields.io/badge/Orchestration-Prefect-4B4DED)
 
 **Taming social streams with topic modeling, trend analytics, and interactive visualizations.**
 
