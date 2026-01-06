@@ -50,7 +50,7 @@ Artifacts (generated locally):
 
 ## Project structure (canonical)
 ```
-SocialMediaNN/
+social-trends-lab/
 ├─ configs/
 │  └─ topics_v2_showcase_100.yaml        # ✅ final “showcase” profile
 ├─ scripts/
@@ -63,7 +63,10 @@ SocialMediaNN/
 │  └─ download_hf_reddit_sharded.py      # optional: download helper
 ├─ src/
 │  └─ ui/
-│     └─ streamlit_app.py                # ✅ Streamlit dashboard (run this)
+│     ├─ streamlit_app.py                # ✅ Streamlit dashboard (run this)
+│     └─ utils/
+│        ├─ config.py
+│        └─ logging.py
 ├─ data/
 │  └─ raw/                               # ❌ NOT committed (place your raw parquet here)
 └─ artifacts/                            # ❌ NOT committed (generated outputs)
@@ -161,7 +164,7 @@ Keep notebooks minimal and focused:
   - distributions (topic sizes, topic_prob)
   - examples per topic (interpretability)
 
-- `notebooks/01_trends_demo.ipynb`
+- `notebooks/01_trends_visuals.ipynb`
   - heatmap share/z-score
   - “trending now” top Δshare
   - multi-topic comparison plots
@@ -177,6 +180,7 @@ Keep notebooks minimal and focused:
 ## Screenshots
 ![Overview](screenshots/overview.png)
 ![Trends heatmap](screenshots/heatmap.png)
+![Topic Inspector](screenshots/topic_inspector.png)
 
 ---
 
