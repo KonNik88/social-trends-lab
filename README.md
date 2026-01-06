@@ -181,6 +181,7 @@ Keep notebooks minimal and focused:
 ![Overview](screenshots/overview.png)
 ![Trends heatmap](screenshots/heatmap.png)
 ![Topic Inspector](screenshots/topic_inspector.png)
+![Compare topics](screenshots/compare.png)
 
 ---
 
