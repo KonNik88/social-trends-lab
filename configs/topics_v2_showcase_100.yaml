@@ -1,0 +1,64 @@
+# v2 CLEAN + tuned clustering + showcase merge to ~100 topics + better keywords
+
+data:
+  raw_path: data/raw/reddit_hf_mix_1m.parquet
+  clean_path: artifacts/posts_clean_1m_v2.parquet
+
+preprocess:
+  text_col: text
+  title_col: title
+  min_text_len: 40
+  max_chars: 2000
+  dedup:
+    enabled: true
+
+  v2:
+    html_unescape: true
+    drop_deleted_removed: true
+
+    drop_link_only: true
+    link_only_min_non_url_chars: 60
+    link_only_max_url_ratio: 0.65
+
+    drop_promo: true
+
+    lang_filter:
+      enabled: true
+      keep: en
+      min_chars: 120
+
+embeddings:
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+  batch_size: 256
+  dtype: float16
+  normalize_embeddings: true
+  out_path: artifacts/embeddings/sbert_minilm_1m_v2_f16.npy
+
+topics:
+  max_fit_docs: 200000
+  seed: 42
+
+  # force merge topics down for a showcase profile
+  nr_topics: 100
+
+  out_topics_path: artifacts/topics_v2_showcase_100.parquet
+  out_info_path: artifacts/topics_info_v2_showcase_100.parquet
+  model_dir: artifacts/bertopic_model_v2_showcase_100
+
+  umap:
+    n_neighbors: 10
+    n_components: 5
+    min_dist: 0.05
+    metric: cosine
+
+  hdbscan:
+    min_cluster_size: 120
+    min_samples: 5
+
+  representation:
+    enabled: true
+    mmr_diversity: 0.3
+
+trends:
+  freq: W
+  out_path: artifacts/trends_v2_showcase_100.parquet

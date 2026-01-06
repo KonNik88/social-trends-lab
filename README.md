@@ -1,4 +1,5 @@
-# Social Trends Lab
+# Social Trends Lab (v2)
+
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Last Commit](https://img.shields.io/github/last-commit/KonNik88/social-trends-lab)
@@ -6,200 +7,183 @@
 ![Forks](https://img.shields.io/github/forks/KonNik88/social-trends-lab?style=social)
 
 ![Streamlit](https://img.shields.io/badge/Streamlit-UI-red)
-![Dash](https://img.shields.io/badge/Dash-UI-orange)
 ![BERTopic](https://img.shields.io/badge/Topic%20Modeling-BERTopic-lightgrey)
 ![SentenceTransformers](https://img.shields.io/badge/Embeddings-SBERT-yellowgreen)
-![Docker](https://img.shields.io/badge/Docker-ready-blue)
 
-![MLflow](https://img.shields.io/badge/Tracking-MLflow-blueviolet)
-![Prefect](https://img.shields.io/badge/Orchestration-Prefect-4B4DED)
+**A practical research dashboard for topic modeling + trend analytics on noisy social text.**
 
-**Taming social streams with topic modeling, trend analytics, and interactive visualizations.**
+This repo contains a **reproducible end‑to‑end pipeline** that:
+1) cleans a large social/news corpus,  
+2) builds SBERT embeddings,  
+3) discovers topics with **BERTopic** (UMAP + HDBSCAN) + topic reduction,  
+4) computes **temporal trends**,  
+5) serves an **interactive Streamlit dashboard**.
 
-> A reproducible, GPU‑friendly pipeline that ingests social/news posts, cleans and embeds text (SBERT), discovers topics with **BERTopic**, tracks **temporal dynamics**, and serves an **interactive Streamlit dashboard**. Roadmap includes **multimodal CLIP** (text↔image) search and image clusters.
+> **Note on data:** raw data and generated artifacts are intentionally **gitignored**. The pipeline regenerates everything locally.
 
 ---
 
 ## Why this project
-- **Portfolio‑ready**: clear problem, modern methods, clean UI, Dockerized.
-- **Practical**: weekly/daily trend tracking, top posts per topic, growth/decay signals.
-- **Resource‑friendly**: runs on a single GPU (e.g., RTX 2070) with MiniLM embeddings.
-- **Extensible**: easy to plug new sources (Reddit/RSS/CSV), add toxicity sentiment, or go multimodal.
+- **Realistic data**: noisy, multi-domain text (not “clean tutorial” corpora).
+- **End‑to‑end engineering**: configs → pipeline → artifacts → UI bundle → dashboard.
+- **Trend research**: “what’s rising / falling” with time bins and ranking modes.
+- **Portfolio-ready**: strong focus on interpretability and product-like visualization.
 
 ---
 
-## Features (v1)
-- **Ingest**: Reddit/RSS/CSV/HF datasets → normalized schema (`id, text, lang, created_at, source, url, author`).
-- **Preprocess**: language filter (ru/en), cleaning, optional dedup.
-- **Embeddings**: `sentence-transformers/all-MiniLM-L6-v2` (cached to disk).
-- **Topics**: **BERTopic** (UMAP + HDBSCAN + c-TF‑IDF) with **time slicing** (daily/weekly).
-- **Trends**: growth scores, spike detection, **top posts** by topic × time.
-- **UI**: Streamlit app — topic map, timelines, faceted search, CSV export.
-- **MLOps (light)**: Prefect flow for scheduled refresh; MLflow logging (coherence/diversity).
+## Showcase result (our current “final” profile)
+On a ~1M corpus, after preprocess v2:
 
-> **Planned v2**: **Multimodal CLIP** (ViT‑B/32) for text↔image search, image clusters linked to textual topics.
+- **Documents after cleaning:** 723,039  
+- **Final topics:** 100 (after reduction)  
+- **Noise share:** ~0.452  
+- **Topic probability:** median ~0.584; share with `prob ≥ 0.4` ~0.587  
+
+Artifacts (generated locally):
+- `artifacts/topics_v2_showcase_100.parquet`
+- `artifacts/topics_info_v2_showcase_100.parquet`
+- `artifacts/trends_v2_showcase_100.parquet`
+- `artifacts/bertopic_model_v2_showcase_100/bertopic.pkl`
+- UI bundle in `artifacts/ui/` (see below)
 
 ---
 
-## Architecture
-
+## Project structure (canonical)
 ```
-social-trends-lab/
-  data/
-    raw/            # raw dumps (gitignored)
-    processed/
-  artifacts/
-    embeddings/
-    bertopic_model/
-    reports/
-  src/
-    ingest/         # reddit_api.py, rss_loader.py, hf_loader.py
-    preprocess/     # clean.py, lang_filter.py, dedup.py
-    embeddings/     # sbert_embed.py
-    topics/         # fit_bertopic.py, dynamic_topics.py, metrics.py
-    trends/         # trend_scores.py, top_posts.py, spikes.py
-    ui/             # streamlit_app.py
-    utils/          # io.py, config.py, logging.py, time.py
-  configs/
-    base.yaml
-  notebooks/
-    01_eda.ipynb
-  docker/
-    Dockerfile.ui
-    docker-compose.yml
-  tests/
-  README.md
-  .gitignore
+SocialMediaNN/
+├─ configs/
+│  └─ topics_v2_showcase_100.yaml        # ✅ final “showcase” profile
+├─ scripts/
+│  ├─ run_pipeline_v2.py                 # ✅ main end-to-end pipeline
+│  ├─ export_ui_bundle.py                # ✅ exports artifacts/ui/* for Streamlit
+│  ├─ sanity_check_topics.py             # report-only sanity checks (optional)
+│  ├─ inspect_raw.py                     # raw dataset sanity checks (optional)
+│  ├─ merge_parquets.py                  # merges shards into one parquet (optional)
+│  ├─ hf_download_shards.py              # optional: download HF shards
+│  └─ download_hf_reddit_sharded.py      # optional: download helper
+├─ src/
+│  └─ ui/
+│     └─ streamlit_app.py                # ✅ Streamlit dashboard (run this)
+├─ data/
+│  └─ raw/                               # ❌ NOT committed (place your raw parquet here)
+└─ artifacts/                            # ❌ NOT committed (generated outputs)
+   └─ ui/                                # exported bundle for Streamlit
+      ├─ topics.parquet
+      ├─ topics_info.parquet
+      ├─ trends.parquet
+      ├─ topic_examples.parquet
+      └─ meta.json
 ```
 
-**Modeling defaults**
-- **Embedding**: `all-MiniLM-L6-v2` (384 dims), fp16 if available, batch 512–1024.
-- **UMAP**: `n_neighbors=15–30`, `n_components=5` (tune vs stability).
-- **HDBSCAN**: `min_cluster_size=30–60` (depends on N), `metric='euclidean'` on UMAP space.
-- **Time slicing**: `freq='W'` initially; switch to `'D'` with more data.
-- **Quality**: Topic **Coherence (c_npmi)** and **Diversity**; logged to MLflow.
+**Canonical entrypoints**
+- Pipeline: `scripts/run_pipeline_v2.py`
+- Final config: `configs/topics_v2_showcase_100.yaml`
+- UI: `streamlit run src/ui/streamlit_app.py`
 
 ---
 
 ## Quickstart
 
-### 1) Environment
+### 1) Create environment
 ```bash
-conda create -n social_trends python=3.10 -y
-conda activate social_trends
-pip install -r requirements.txt  # or use your existing env
+conda create -n social_api_env python=3.10 -y
+conda activate social_api_env
+pip install -r requirements.txt
 ```
 
-### 2) Minimal config
-`configs/base.yaml`
-```yaml
-data_dir: data
-artifacts_dir: artifacts
-language_whitelist: [ru, en]
-time_freq: "W"
-embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
-umap:
-  n_neighbors: 15
-  n_components: 5
-hdbscan:
-  min_cluster_size: 40
-sources:
-  - kind: csv
-    path: data/raw/sample_posts.csv
-    text_col: text
-    datetime_col: created_at
-    lang_col: lang
-```
+### 2) Put raw dataset locally
+Place your parquet under `data/raw/` (example):
+- `data/raw/reddit_hf_mix_1m.parquet`
 
-### 3) Prepare a sample
-Put a CSV at `data/raw/sample_posts.csv` with columns:
-```
-id,text,lang,created_at,source,url,author
-123,"Your post text ...",en,2025-10-01,reddit,https://...,user42
-```
+This repository does not ship the dataset.
 
-### 4) Run pipeline (local)
+### 3) Run the end-to-end pipeline (v2)
 ```bash
-python -m src.preprocess.clean --config configs/base.yaml
-python -m src.embeddings.sbert_embed --config configs/base.yaml
-python -m src.topics.fit_bertopic --config configs/base.yaml
-python -m src.trends.trend_scores --config configs/base.yaml
+python scripts/run_pipeline_v2.py --config configs/topics_v2_showcase_100.yaml
 ```
 
-### 5) Launch UI
+This generates:
+- cleaned posts
+- embeddings
+- BERTopic model + doc topics
+- trends parquet
+
+### 4) Export UI bundle for Streamlit
 ```bash
-streamlit run src/ui/streamlit_app.py --server.port 8501
+python scripts/export_ui_bundle.py \
+  --topics artifacts/topics_v2_showcase_100.parquet \
+  --info artifacts/topics_info_v2_showcase_100.parquet \
+  --trends artifacts/trends_v2_showcase_100.parquet \
+  --out_dir artifacts/ui \
+  --profile_name topics_v2_showcase_100 \
+  --examples_max_topics 80 \
+  --examples_per_topic 15 \
+  --examples_min_prob 0.30
+```
+
+### 5) Launch Streamlit UI
+```bash
+streamlit run src/ui/streamlit_app.py
 ```
 
 ---
 
-## Streamlit UI
+## Streamlit UI: what you can do
+- **Overview:** trending topics table + “top movers” cards
+- **Topic Inspector:** trend line + high-probability post examples with links
+- **Trends:** heatmap Topics×Time (share or z-score) + multi-topic comparison
 
-- **Topic Map**: 2D projection of topics (hover → keywords, click → drilldown).
-- **Trends**: top rising/falling topics by period; mini-timelines.
-- **Top Posts**: per topic × time, with outbound links to sources.
-- **Filters**: source, language, date range, (optional) toxicity/sentiment.
-- **Export**: CSV for topics/trends.
-
-Screenshots go to `artifacts/reports/`.
-
----
-
-## Reproducibility & Ops
-
-- **Prefect**: `flows/refresh_topics.py` to schedule daily/weekly refresh.
-- **MLflow**: log coherence/diversity and UMAP/HDBSCAN params per run.
-- **Docker**: container for the Streamlit UI and a lightweight worker.
-- **Determinism**: set seeds for UMAP/HDBSCAN where applicable (note: HDBSCAN is stochastic across embeddings).
+Filters:
+- include/exclude noise topic (-1)
+- min topic probability threshold
+- time presets and date range
+- min topic size
+- keyword/name search
+- ranking mode: Δshare / growth / last share
 
 ---
 
-## Metrics
-
-- **Topic Coherence**: `c_npmi` on reference windows.
-- **Topic Diversity**: unique top-k tokens per topic / (k × #topics).
-- **Coverage**: share of docs assigned to non‑outlier topics.
-- **Latency**: UI startup and interaction times.
-
----
-
-## Data Sources (examples)
-
-- **Reddit** via PRAW (subreddits of interest).
-- **RSS/Atom** feeds (news/blogs/tech).
-- **Hugging Face Datasets** snapshots.
-- **Local CSV/Parquet** dumps.
-
-> Please ensure you comply with each platform’s Terms of Service. This repo is for research/educational purposes.
+## Reproducibility notes
+- Generated files live in `artifacts/` and are **not committed**.
+- The UI reads only `artifacts/ui/*` (a small stable “bundle”).
+- If you change configs or code, rerun:
+  1) `run_pipeline_v2.py`
+  2) `export_ui_bundle.py`
+  3) `streamlit_app.py`
 
 ---
 
-## Roadmap
+## Notebooks (recommended)
+Keep notebooks minimal and focused:
 
-- [ ] Topic stability diagnostics across days/weeks.
-- [ ] Lightweight **RAG**: topic summaries with LLM (optional).
-- [ ] **CLIP** (ViT‑B/32) for text↔image search (v2).
-- [ ] Image clusters ↔ textual topics linking (cosine in CLIP space).
-- [ ] NSFW filtering for image ingestion.
-- [ ] Qdrant/FAISS for fast ANN over embeddings (optional).
+- `notebooks/00_sanity_and_quality.ipynb`
+  - KPI snapshot (docs/topics/noise/prob thresholds)
+  - distributions (topic sizes, topic_prob)
+  - examples per topic (interpretability)
+
+- `notebooks/01_trends_demo.ipynb`
+  - heatmap share/z-score
+  - “trending now” top Δshare
+  - multi-topic comparison plots
+  - short narrative conclusions
 
 ---
 
 ## Suggested GitHub Topics (tags)
+`machine-learning`, `nlp`, `topic-modeling`, `bertopic`, `umap`, `hdbscan`, `sbert`, `sentence-transformers`, `trend-analysis`, `streamlit`, `data-visualization`, `social-media-analytics`, `unsupervised-learning`
 
-`machine-learning`, `nlp`, `topic-modeling`, `bertopic`, `umap`, `hdbscan`, `sbert`, `sentence-transformers`, `trend-analysis`, `time-series`, `streamlit`, `data-visualization`, `mlops`, `prefect`, `mlflow`, `social-media-analytics`, `reddit`, `clustering`, `unsupervised-learning`, `docker`
+---
+
+## Screenshots
+![Overview](screenshots/overview.png)
+![Trends heatmap](screenshots/heatmap.png)
 
 ---
 
 ## License
-
 MIT — see `LICENSE`.
 
----
-
 ## Acknowledgements
-
-- **BERTopic** by Maarten Grootendorst
+- **BERTopic** (Maarten Grootendorst)
 - **Sentence-Transformers**
 - **UMAP**, **HDBSCAN**
-- Community datasets and open-source tools
